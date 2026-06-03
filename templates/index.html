@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enterprise EDA Engine</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="upload-container">
+        <h1>🏭 Enterprise EDA & Preprocessing Factory</h1>
+        <p>Upload a raw tabular CSV data catalog to spin up the transformation matrix workspace.</p>
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <input type="file" name="dataset" required><br>
+            <button type="submit">🚀 Ingest Dataset</button>
+        </form>
+    </div>
+</body>
+</html>

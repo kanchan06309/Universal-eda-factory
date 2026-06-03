@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Preprocessing Control Matrix</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <h2>⚙️ Pipeline Analysis Workspace</h2>
+
+    <div class="meta-grid">
+        <div class="card"><div>Total Rows</div><div class="metric">{{ rows }}</div></div>
+        <div class="card"><div>Features Space Dimensions</div><div class="metric">{{ cols }}</div></div>
+        <div class="card"><div>Duplicate Records</div><div class="metric">{{ duplicates }}</div></div>
+    </div>
+
+    <div class="section">
+        <h3>📋 Top 5 Records Preview Matrix</h3>
+        <div style="overflow-x: auto;">{{ preview|safe }}</div>
+    </div>
+
+    <div class="section">
+        <h3>📊 Central Tendencies & Dispersion Descriptive Grid</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Feature</th><th>Mean</th><th>Median</th><th>Variance</th><th>Std Deviation</th><th>Skewness</th><th>Kurtosis</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in stats %}
+                <tr>
+                    <td><strong>{{ row.Feature }}</strong></td><td>{{ row.Mean }}</td><td>{{ row.Median }}</td><td>{{ row.Variance }}</td><td>{{ row.Std_Deviation }}</td><td>{{ row.Skewness }}</td><td>{{ row.Kurtosis }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <form action="/compile" method="POST">
+        <div class="section">
+            <h3>👥 1. Data De-duplication Strategy</h3>
+            <label><input type="radio" name="dup_policy" value="none" checked> Keep All Data Records</label>
+            <label><input type="radio" name="dup_policy" value="first"> Drop Duplicates (Keep First Instance)</label>
+            <label><input type="radio" name="dup_policy" value="last"> Drop Duplicates (Keep Last Instance)</label>
+        </div>
+
+        <div class="section">
+            <h3>🔍 2. Column-by-Column Imputation Setup</h3>
+            {% for col, count in null_counts.items() if count > 0 %}
+            <div style="margin-bottom: 15px;">
+                <strong>Feature:</strong> <code>{{ col }}</code> | Missing Rows: <span style="color: #ff7b72;">{{ count }}</span>
+                <br>
+                <select name="imp_{{ col }}">
+                    {% if col in num_cols %}
+                    <option value="median">Fill with Median</option>
+                    <option value="mean">Fill with Mean</option>
+                    <option value="zero">Fill with Constant (0)</option>
+                    {% else %}
+                    <option value="mode">Fill with Mode (Most Frequent)</option>
+                    <option value="unknown">Fill with Constant ('Unknown')</option>
+                    {% endif %}
+                    <option value="drop">Drop Rows with Nulls</option>
+                </select>
+            </div>
+            {% else %}
+            <p style="color: #56d364;">✓ Dataset integrity is 100% solid. Zero missing records detected.</p>
+            {% endfor %}
+        </div>
+
+        <div class="section">
+            <h3>📈 3. Feature Transformations & Outliers</h3>
+            <label>Select Highly Skewed Features for Log Transformations ($ln(x+1)$):</label>
+            <select name="skew_cols" multiple style="height: 100px;">
+                {% for col in num_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+            </select>
+
+            <label>Select Features for Outlier Tracking (IQR Filtering):</label>
+            <select name="outlier_cols" multiple style="height: 100px;">
+                {% for col in num_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+            </select>
+            <br><br>
+            <label>IQR Distance Multiplier Sensitivity Factor:</label>
+            <input type="number" name="iqr_factor" value="1.5" step="0.1" min="1.0" max="3.0">
+        </div>
+
+        <div class="section">
+            <h3>🚀 4. Compile Machine Learning Output Assets</h3>
+            <label>Designate Final Predictive Target Label (Y Axis) [Bypasses Pipelines Scalers]:</label>
+            <select name="target_variable">
+                <option value="">None</option>
+                {% for col in all_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+            </select>
+
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="apply_scaling" value="true" checked> Standardize Quantitative Features (Scale to Mean=0, Variance=1)</label>
+            </div>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="apply_encoding" value="true" checked> Convert Categorical Labels to Sparse One-Hot Binary Vectors</label>
+            </div>
+
+            <button type="submit" class="btn-compile">⚙️ Compile & Download Asset</button>
+            <div class="clear-fix"></div>
+        </div>
+    </form>
+</body>
+</html>
