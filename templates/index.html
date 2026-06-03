@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Enterprise EDA Engine</title>
+    <title>Enterprise EDA Engine Ingestion</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body style="display: block;">
     <div class="upload-container">
-        <h1>🏭 Enterprise EDA & Preprocessing Factory</h1>
-        <p>Upload a raw tabular CSV data catalog to spin up the transformation matrix workspace.</p>
+        <div class="brand-title" style="justify-content: center; margin-bottom: 20px;">🌱 Quixotic EDA Engine</div>
+        <h2>Data Pipeline File Ingestion</h2>
+        <p style="color: var(--text-muted); margin-bottom: 30px;">Upload any multi-feature data catalog to spin up your premium visual dashboards live.</p>
         <form action="/" method="POST" enctype="multipart/form-data">
-            <input type="file" name="dataset" required><br>
-            <button type="submit">🚀 Ingest Dataset</button>
+            <input type="file" name="dataset" required><br><br>
+            <button type="submit" class="btn-brand">🚀 Ingest & Profile Dataset</button>
         </form>
     </div>
 </body>

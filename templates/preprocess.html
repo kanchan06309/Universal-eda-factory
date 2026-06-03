@@ -2,107 +2,210 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Preprocessing Control Matrix</title>
+    <title>Quixotic Preprocessing Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-    <h2>⚙️ Pipeline Analysis Workspace</h2>
-
-    <div class="meta-grid">
-        <div class="card"><div>Total Rows</div><div class="metric">{{ rows }}</div></div>
-        <div class="card"><div>Features Space Dimensions</div><div class="metric">{{ cols }}</div></div>
-        <div class="card"><div>Duplicate Records</div><div class="metric">{{ duplicates }}</div></div>
+    <div class="sidebar">
+        <div class="brand-title">🌱 Quixotic EDA</div>
+        <div class="nav-item active" onclick="switchTab(event, 'tab-profile')">📋 Data Profiles</div>
+        <div class="nav-item" onclick="switchTab(event, 'tab-charts')">📊 Visual Analytics Workspace</div>
+        <div class="nav-item" onclick="switchTab(event, 'tab-clean')">⚙️ Processing Pipelines</div>
+        <a href="/" class="nav-item" style="margin-top: auto; border-top: 1px solid var(--border-color); pt: 15px;">📥 Upload New File</a>
     </div>
 
-    <div class="section">
-        <h3>📋 Top 5 Records Preview Matrix</h3>
-        <div style="overflow-x: auto;">{{ preview|safe }}</div>
-    </div>
+    <div class="main-content">
+        <div class="header-user">Welcome Back, Data Scientist 👋</div>
 
-    <div class="section">
-        <h3>📊 Central Tendencies & Dispersion Descriptive Grid</h3>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Feature</th><th>Mean</th><th>Median</th><th>Variance</th><th>Std Deviation</th><th>Skewness</th><th>Kurtosis</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in stats %}
-                <tr>
-                    <td><strong>{{ row.Feature }}</strong></td><td>{{ row.Mean }}</td><td>{{ row.Median }}</td><td>{{ row.Variance }}</td><td>{{ row.Std_Deviation }}</td><td>{{ row.Skewness }}</td><td>{{ row.Kurtosis }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <form action="/compile" method="POST">
-        <div class="section">
-            <h3>👥 1. Data De-duplication Strategy</h3>
-            <label><input type="radio" name="dup_policy" value="none" checked> Keep All Data Records</label>
-            <label><input type="radio" name="dup_policy" value="first"> Drop Duplicates (Keep First Instance)</label>
-            <label><input type="radio" name="dup_policy" value="last"> Drop Duplicates (Keep Last Instance)</label>
+        <div class="meta-grid">
+            <div class="card"><div class="card-title">Total Rows Ingested</div><div class="metric">{{ rows }}</div></div>
+            <div class="card"><div class="card-title">Feature Fields (Columns)</div><div class="metric">{{ cols }}</div></div>
+            <div class="card"><div class="card-title">Duplicate Row Groups</div><div class="metric">{{ duplicates }}</div></div>
         </div>
 
-        <div class="section">
-            <h3>🔍 2. Column-by-Column Imputation Setup</h3>
-            {% for col, count in null_counts.items() if count > 0 %}
-            <div style="margin-bottom: 15px;">
-                <strong>Feature:</strong> <code>{{ col }}</code> | Missing Rows: <span style="color: #ff7b72;">{{ count }}</span>
-                <br>
-                <select name="imp_{{ col }}">
-                    {% if col in num_cols %}
-                    <option value="median">Fill with Median</option>
-                    <option value="mean">Fill with Mean</option>
-                    <option value="zero">Fill with Constant (0)</option>
+        <div id="tab-profile" class="tab-content active">
+            <div class="dashboard-section">
+                <h3>📋 Target Catalog Overview (Top 5 Rows)</h3>
+                <div style="overflow-x: auto;">{{ preview|safe }}</div>
+            </div>
+
+            <div class="dashboard-section">
+                <h3>📊 Descriptive Central Tendencies & Dispersion Parameters</h3>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th><th>Mean</th><th>Median</th><th>Variance</th><th>Std Deviation</th><th>Skewness</th><th>Kurtosis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in stats %}
+                        <tr>
+                            <td><strong>{{ row.Feature }}</strong></td><td>{{ row.Mean }}</td><td>{{ row.Median }}</td><td>{{ row.Variance }}</td><td>{{ row.Std_Deviation }}</td><td>{{ row.Skewness }}</td><td>{{ row.Kurtosis }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-charts" class="tab-content">
+            <div class="dashboard-section">
+                <h3>📊 Automated Visual Analytics Dashboard Space</h3>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">The engine automatically maps data type vectors to output clean charts.</p>
+                
+                <div class="chart-grid">
+                    <div class="chart-wrapper">
+                        <canvas id="univariateChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="bivariateChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-clean" class="tab-content">
+            <form action="/compile" method="POST">
+                <div class="dashboard-section">
+                    <h3>👥 1. Data De-duplication Strategy</h3>
+                    <label><input type="radio" name="dup_policy" value="none" checked> Keep All Data Records</label>
+                    <label><input type="radio" name="dup_policy" value="first"> Drop Duplicates (Keep First Instance)</label>
+                    <label><input type="radio" name="dup_policy" value="last"> Drop Duplicates (Keep Last Instance)</label>
+                </div>
+
+                <div class="dashboard-section">
+                    <h3>🔍 2. Column Imputation Layout Controls</h3>
+                    {% for col, count in null_counts.items() if count > 0 %}
+                    <div style="margin-bottom: 15px;">
+                        <strong>Feature Field:</strong> <code>{{ col }}</code> | Null Gaps: <span style="color: #ef4444; font-weight: bold;">{{ count }}</span>
+                        <br>
+                        <select name="imp_{{ col }}">
+                            {% if col in num_cols %}
+                            <option value="median">Fill with Median</option>
+                            <option value="mean">Fill with Mean</option>
+                            <option value="zero">Fill with Constant (0)</option>
+                            {% else %}
+                            <option value="mode">Fill with Mode (Most Frequent)</option>
+                            <option value="unknown">Fill with Constant ('Unknown')</option>
+                            {% endif %}
+                            <option value="drop">Drop Rows with Nulls</option>
+                        </select>
+                    </div>
                     {% else %}
-                    <option value="mode">Fill with Mode (Most Frequent)</option>
-                    <option value="unknown">Fill with Constant ('Unknown')</option>
-                    {% endif %}
-                    <option value="drop">Drop Rows with Nulls</option>
-                </select>
-            </div>
-            {% else %}
-            <p style="color: #56d364;">✓ Dataset integrity is 100% solid. Zero missing records detected.</p>
-            {% endfor %}
+                    <p style="color: #10b981; font-weight: 600;">✓ Flawless matrix structural data integrity. Zero missing cells found.</p>
+                    {% endfor %}
+                </div>
+
+                <div class="dashboard-section">
+                    <h3>📈 3. Mathematical Skew Transformations & Outliers</h3>
+                    <label>Select Highly Skewed Features for Log Transformations ($ln(x+1)$):</label>
+                    <select name="skew_cols" multiple style="height: 100px;">
+                        {% for col in num_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+                    </select>
+
+                    <label>Select Features for Outlier Tracking (IQR Filtering):</label>
+                    <select name="outlier_cols" multiple style="height: 100px;">
+                        {% for col in num_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+                    </select>
+                    <br><br>
+                    <label>IQR Distance Multiplier Sensitivity Scale Factor:</label>
+                    <input type="number" name="iqr_factor" value="1.5" step="0.1" min="1.0" max="3.0">
+                </div>
+
+                <div class="dashboard-section">
+                    <h3>🚀 4. Compile Machine Learning Output Assets</h3>
+                    <label>Designate Final Predictive Target Label (Y Axis) [Bypasses Scalers]:</label>
+                    <select name="target_variable">
+                        <option value="">None</option>
+                        {% for col in all_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+                    </select>
+
+                    <div style="margin: 15px 0;">
+                        <label><input type="checkbox" name="apply_scaling" value="true" checked> Standardize Quantitative Features (Scale to Mean=0, Variance=1)</label>
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <label><input type="checkbox" name="apply_encoding" value="true" checked> Convert Categorical Labels to Sparse One-Hot Binary Vectors</label>
+                    </div>
+
+                    <button type="submit" class="btn-brand btn-compile">⚙️ Compile & Download Training Matrix Asset</button>
+                    <div class="clear-fix"></div>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <div class="section">
-            <h3>📈 3. Feature Transformations & Outliers</h3>
-            <label>Select Highly Skewed Features for Log Transformations ($ln(x+1)$):</label>
-            <select name="skew_cols" multiple style="height: 100px;">
-                {% for col in num_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
-            </select>
+    <script>
+        // 1. Client-side Navigation Tab Switcher Logic
+        function switchTab(evt, tabId) {
+            let contents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < contents.length; i++) {
+                contents[i].classList.remove("active");
+            }
+            let navItems = document.getElementsByClassName("nav-item");
+            for (let i = 0; i < navItems.length; i++) {
+                navItems[i].classList.remove("active");
+            }
+            document.getElementById(tabId).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
 
-            <label>Select Features for Outlier Tracking (IQR Filtering):</label>
-            <select name="outlier_cols" multiple style="height: 100px;">
-                {% for col in num_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
-            </select>
-            <br><br>
-            <label>IQR Distance Multiplier Sensitivity Factor:</label>
-            <input type="number" name="iqr_factor" value="1.5" step="0.1" min="1.0" max="3.0">
-        </div>
+        // 2. Client-side Chart.js Injections Layer Engine
+        // Safely pull structural JSON string data parsed directly from our Flask session controller
+        const chartData = { chart_json|safe };
+        
+        if(chartData.has_numeric) {
+            // Unpack Univariate Density Bar Histogram
+            const ctxUni = document.getElementById('univariateChart').getContext('2d');
+            new Chart(ctxUni, {
+                type: 'bar',
+                data: {
+                    labels: chartData.univariate_labels,
+                    datasets: [{
+                        label: `Density Frequency: ${chartData.active_univariate_name}`,
+                        data: chartData.univariate_values,
+                        backgroundColor: 'rgba(16, 185, 129, 0.75)', /* Reference theme matching green */
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { font: { family: 'Inter' } } } }
+                }
+            });
 
-        <div class="section">
-            <h3>🚀 4. Compile Machine Learning Output Assets</h3>
-            <label>Designate Final Predictive Target Label (Y Axis) [Bypasses Pipelines Scalers]:</label>
-            <select name="target_variable">
-                <option value="">None</option>
-                {% for col in all_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
-            </select>
+            // Unpack Bivariate Coordinate Scatter Plot
+            if(chartData.has_bivariate) {
+                const ctxBi = document.getElementById('bivariateChart').getContext('2d');
+                // Format scatter data points array dictionary elements format
+                const scatterPoints = chartData.bivariate_x.map((x, idx) => ({ x: x, y: chartData.bivariate_y[idx] }));
 
-            <div class="checkbox-group">
-                <label><input type="checkbox" name="apply_scaling" value="true" checked> Standardize Quantitative Features (Scale to Mean=0, Variance=1)</label>
-            </div>
-            <div class="checkbox-group">
-                <label><input type="checkbox" name="apply_encoding" value="true" checked> Convert Categorical Labels to Sparse One-Hot Binary Vectors</label>
-            </div>
-
-            <button type="submit" class="btn-compile">⚙️ Compile & Download Asset</button>
-            <div class="clear-fix"></div>
-        </div>
-    </form>
+                new Chart(ctxBi, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: `Correlation Map: ${chartData.active_x_name} vs ${chartData.active_y_name}`,
+                            data: scatterPoints,
+                            backgroundColor: '#636e7a',
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { title: { display: true, text: chartData.active_x_name } },
+                            y: { title: { display: true, text: chartData.active_y_name } }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
 </body>
 </html>
