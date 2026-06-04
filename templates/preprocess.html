@@ -13,7 +13,7 @@
         <div class="nav-item active" onclick="switchTab(event, 'tab-profile')">📋 Data Profiles</div>
         <div class="nav-item" onclick="switchTab(event, 'tab-charts')">📊 Visual Analytics Workspace</div>
         <div class="nav-item" onclick="switchTab(event, 'tab-clean')">⚙️ Processing Pipelines</div>
-        <a href="/" class="nav-item" style="margin-top: auto; border-top: 1px solid var(--border-color); pt: 15px;">📥 Upload New File</a>
+        <a href="/" class="nav-item" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 15px;">📥 Upload New File</a>
     </div>
 
     <div class="main-content">
@@ -153,7 +153,7 @@
 
         // 2. Client-side Chart.js Injections Layer Engine
         // Safely pull structural JSON string data parsed directly from our Flask session controller
-        const chartData = { chart_json|safe };
+        const chartData = JSON.parse('{{ chart_json | tojson | safe }}');
         
         if(chartData.has_numeric) {
             // Unpack Univariate Density Bar Histogram
