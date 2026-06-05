@@ -1,85 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Quixotic Preprocessing Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
     <div class="sidebar">
         <div class="brand-title">🌱 Quixotic EDA</div>
-        <div class="nav-item active" onclick="switchTab(event, 'tab-profile')">📋 Data Profiles</div>
-        <div class="nav-item" onclick="switchTab(event, 'tab-charts')">📊 Visual Analytics Workspace</div>
-        <div class="nav-item" onclick="switchTab(event, 'tab-clean')">⚙️ Processing Pipelines</div>
-        <a href="/" class="nav-item" style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 15px;">📥 Upload New File</a>
+        <div class="nav-item {% if not show_download_modal %}active{% endif %}" id="nav-profile"
+            onclick="switchTab(event, 'tab-profile')">📋 Data Profiles</div>
+        <div class="nav-item" id="nav-charts" onclick="switchTab(event, 'tab-charts')">📊 Visual Analytics Workspace
+        </div>
+        <div class="nav-item" id="nav-clean" onclick="switchTab(event, 'tab-clean')">⚙️ Processing Pipelines</div>
+
+        {% if show_download_modal %}
+        <div class="nav-item active" id="nav-download" onclick="switchTab(event, 'tab-download')">🚀 Asset Compilation
+            Room</div>
+        {% endif %}
+
+        <a href="/" class="nav-item"
+            style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 15px;">📥 Upload New
+            File</a>
     </div>
 
     <div class="main-content">
         <div class="header-user">Welcome Back, Data Scientist 👋</div>
 
-        <div class="meta-grid">
-            <div class="card"><div class="card-title">Total Rows Ingested</div><div class="metric">{{ rows }}</div></div>
-            <div class="card"><div class="card-title">Feature Fields (Columns)</div><div class="metric">{{ cols }}</div></div>
-            <div class="card"><div class="card-title">Duplicate Row Groups</div><div class="metric">{{ duplicates }}</div></div>
+        <div class="meta-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="card">
+                <div class="card-title">Total Rows Available</div>
+                <div class="metric">{{ rows }}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Feature Fields (Columns)</div>
+                <div class="metric">{{ cols }}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Duplicate Row Groups</div>
+                <div class="metric">{{ duplicates }}</div>
+            </div>
+            <div class="card"
+                style="border-left: 4px solid {% if total_null_raw == 0 %}var(--primary-brand){% else %}#ef4444{% endif %};">
+                <div class="card-title">Total Missing Cells</div>
+                <div class="metric"
+                    style="color: {% if total_null_raw == 0 %}var(--text-main){% else %}#ef4444{% endif %};">
+                    {{ total_nulls }}
+                </div>
+            </div>
         </div>
 
-        <div id="tab-profile" class="tab-content active">
+        <div id="tab-profile" class="tab-content {% if not show_download_modal %}active{% endif %}">
+            {% if preview %}
             <div class="dashboard-section">
                 <h3>📋 Target Catalog Overview (Top 5 Rows)</h3>
                 <div style="overflow-x: auto;">{{ preview|safe }}</div>
             </div>
+            {% endif %}
 
+            {% if schema %}
             <div class="dashboard-section">
-                <h3>📊 Descriptive Central Tendencies & Dispersion Parameters</h3>
+                <h3>🔍 Structural Column Schema Matrix (Data Types & Null Counts)</h3>
                 <table class="stats-table">
                     <thead>
                         <tr>
-                            <th>Feature</th><th>Mean</th><th>Median</th><th>Variance</th><th>Std Deviation</th><th>Skewness</th><th>Kurtosis</th>
+                            <th>Column Name</th>
+                            <th>Data Type</th>
+                            <th>Missing Values (Nulls)</th>
+                            <th>Status Profile</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in stats %}
+                        {% for item in schema %}
                         <tr>
-                            <td><strong>{{ row.Feature }}</strong></td><td>{{ row.Mean }}</td><td>{{ row.Median }}</td><td>{{ row.Variance }}</td><td>{{ row.Std_Deviation }}</td><td>{{ row.Skewness }}</td><td>{{ row.Kurtosis }}</td>
+                            <td><code>{{ item.column_name }}</code></td>
+                            <td><span style="color: #58a6ff; font-weight: 600;">{{ item.data_type }}</span></td>
+                            <td>
+                                {% if item.null_count > 0 %}
+                                <span style="color: #ef4444; font-weight: bold;">{{ item.null_count }} missing
+                                    rows</span>
+                                {% else %}
+                                <span style="color: #64748b;">0 (Complete)</span>
+                                {% endif %}
+                            </td>
+                            <td>{% if item.null_count > 0 %}⚠️ Requires Imputation{% else %}✅ Stable Matrix Vector{%
+                                endif %}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% endif %}
+
+            {% if stats %}
+            <div class="dashboard-section">
+                <h3>📊 Descriptive Central Tendencies & Dispersion Parameters</h3>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Feature Variable</th>
+                            <th>Mean</th>
+                            <th>Median</th>
+                            <th>Variance</th>
+                            <th>Std Deviation</th>
+                            <th>Skewness</th>
+                            <th>Kurtosis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in stats %}
+                        <tr>
+                            <td><strong>{{ row.Feature }}</strong></td>
+                            <td>{{ row.Mean }}</td>
+                            <td>{{ row.Median }}</td>
+                            <td>{{ row.Variance }}</td>
+                            <td>{{ row.Std_Deviation }}</td>
+                            <td>{{ row.Skewness }}</td>
+                            <td>{{ row.Kurtosis }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
         </div>
 
         <div id="tab-charts" class="tab-content">
             <div class="dashboard-section">
                 <h3>📊 Automated Visual Analytics Dashboard Space</h3>
-                <p style="color: var(--text-muted); margin-bottom: 25px;">The engine automatically maps data type vectors to output clean charts.</p>
-                
                 <div class="chart-grid">
-                    <div class="chart-wrapper">
-                        <canvas id="univariateChart"></canvas>
-                    </div>
-                    <div class="chart-wrapper">
-                        <canvas id="bivariateChart"></canvas>
-                    </div>
+                    <div class="chart-wrapper"><canvas id="univariateChart"></canvas></div>
+                    <div class="chart-wrapper"><canvas id="bivariateChart"></canvas></div>
                 </div>
             </div>
         </div>
 
         <div id="tab-clean" class="tab-content">
             <form action="/compile" method="POST">
+
                 <div class="dashboard-section">
-                    <h3>👥 1. Data De-duplication Strategy</h3>
-                    <label><input type="radio" name="dup_policy" value="none" checked> Keep All Data Records</label>
-                    <label><input type="radio" name="dup_policy" value="first"> Drop Duplicates (Keep First Instance)</label>
-                    <label><input type="radio" name="dup_policy" value="last"> Drop Duplicates (Keep Last Instance)</label>
+                    <h3>📝 0. Text-to-Numeric Cleaning Lab (Unit & Currency Stripper)</h3>
+                    <p style="color: var(--text-muted); font-size: 14px;">Select text features containing trailing units
+                        or symbols (e.g., mileage, CC, bhp, ₹, %) to dynamically extract numbers and coerce to floats:
+                    </p>
+                    <select name="coerce_cols" multiple style="height: 100px;">
+                        {% for col in cat_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+                    </select>
+                </div>
+
+                <div class="dashboard-section">
+                    <h3>👥 1. Data De-duplication Strategy & Log Inspector</h3>
+                    {% if dup_preview %}
+                    <div
+                        style="overflow-x: auto; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 20px;">
+                        {{ dup_preview|safe }}
+                    </div>
+                    {% else %}
+                    <p style="color: #10b981; font-weight: 600; margin-bottom: 20px;">✓ Flawless data uniqueness! Zero
+                        repeated row records were detected.</p>
+                    {% endif %}
+                    <label>Select Action Policy Strategy:</label>
+                    <label style="font-weight: normal; margin: 8px 0;"><input type="radio" name="dup_policy"
+                            value="none" checked> Keep All Data Records (No Action)</label>
+                    <label style="font-weight: normal; margin: 8px 0;"><input type="radio" name="dup_policy"
+                            value="first"> Drop Duplicates (Keep First Instance)</label>
+                    <label style="font-weight: normal; margin: 8px 0;"><input type="radio" name="dup_policy"
+                            value="last"> Drop Duplicates (Keep Last Instance)</label>
                 </div>
 
                 <div class="dashboard-section">
                     <h3>🔍 2. Column Imputation Layout Controls</h3>
                     {% for col, count in null_counts.items() if count > 0 %}
                     <div style="margin-bottom: 15px;">
-                        <strong>Feature Field:</strong> <code>{{ col }}</code> | Null Gaps: <span style="color: #ef4444; font-weight: bold;">{{ count }}</span>
+                        <strong>Feature Field:</strong> <code>{{ col }}</code> | Null Gaps: <span
+                            style="color: #ef4444; font-weight: bold;">{{ count }}</span>
                         <br>
                         <select name="imp_{{ col }}">
                             {% if col in num_cols %}
@@ -94,7 +192,8 @@
                         </select>
                     </div>
                     {% else %}
-                    <p style="color: #10b981; font-weight: 600;">✓ Flawless matrix structural data integrity. Zero missing cells found.</p>
+                    <p style="color: #10b981; font-weight: 600;">✓ Flawless matrix structural data integrity. Zero
+                        missing cells found.</p>
                     {% endfor %}
                 </div>
 
@@ -116,47 +215,69 @@
 
                 <div class="dashboard-section">
                     <h3>🚀 4. Compile Machine Learning Output Assets</h3>
-                    <label>Designate Final Predictive Target Label (Y Axis) [Bypasses Scalers]:</label>
+                    <label>Designate Final Predictive Target Label (Y Axis) [Bypasses Pipelines Scalers]:</label>
                     <select name="target_variable">
                         <option value="">None</option>
                         {% for col in all_cols %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
                     </select>
 
                     <div style="margin: 15px 0;">
-                        <label><input type="checkbox" name="apply_scaling" value="true" checked> Standardize Quantitative Features (Scale to Mean=0, Variance=1)</label>
+                        <label><input type="checkbox" name="apply_scaling" value="true" checked> Standardize
+                            Quantitative Features (Scale to Mean=0, Variance=1)</label>
                     </div>
                     <div style="margin: 15px 0;">
-                        <label><input type="checkbox" name="apply_encoding" value="true" checked> Convert Categorical Labels to Sparse One-Hot Binary Vectors</label>
+                        <label><input type="checkbox" name="apply_encoding" value="true" checked> Convert Categorical
+                            Labels to Sparse One-Hot Binary Vectors</label>
                     </div>
 
-                    <button type="submit" class="btn-brand btn-compile">⚙️ Compile & Download Training Matrix Asset</button>
+                    <button type="submit" class="btn-brand btn-compile">⚙️ Execute Transformation Pipeline</button>
                     <div class="clear-fix"></div>
                 </div>
             </form>
         </div>
+
+        {% if show_download_modal %}
+        <div id="tab-download" class="tab-content active">
+            <div class="dashboard-section" style="border-top: 4px solid var(--primary-brand);">
+                <h3>🎉 Preprocessing Steps Complete! Clean Data Snapshot Below</h3>
+                <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+                    💡 <strong>Pre-Encoding Inspection Validation (Top 5 Rows):</strong> This snapshot reflects your
+                    dataset after unit stripping, imputation updates, log scaling, and outlier cleaning, but **right
+                    before categorical labels are encoded into binary sparse vectors**. Review features structure before
+                    final extraction download.
+                </p>
+                <div
+                    style="overflow-x: auto; margin-bottom: 25px; border: 1px solid var(--border-color); border-radius: 8px;">
+                    {{ pre_encoded_preview|safe }}
+                </div>
+
+                <a href="/download" class="btn-brand"
+                    style="display: inline-block; text-decoration: none; text-align: center; font-size: 16px; padding: 15px 35px;">📥
+                    Download Fully Preprocessed ML-Ready CSV</a>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <script>
-        // 1. Client-side Navigation Tab Switcher Logic
         function switchTab(evt, tabId) {
             let contents = document.getElementsByClassName("tab-content");
-            for (let i = 0; i < contents.length; i++) {
-                contents[i].classList.remove("active");
-            }
+            for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
+
             let navItems = document.getElementsByClassName("nav-item");
-            for (let i = 0; i < navItems.length; i++) {
-                navItems[i].classList.remove("active");
-            }
+            for (let i = 0; i < navItems.length; i++) navItems[i].classList.remove("active");
+
             document.getElementById(tabId).classList.add("active");
-            evt.currentTarget.classList.add("active");
+            if (evt) {
+                evt.currentTarget.classList.add("active");
+            } else {
+                // Handle fallback anchor activation focus states
+                if (tabId === 'tab-download') document.getElementById('nav-download').classList.add('active');
+            }
         }
 
-        // 2. Client-side Chart.js Injections Layer Engine
-        // Safely pull structural JSON string data parsed directly from our Flask session controller
-        const chartData = JSON.parse('{{ chart_json | tojson | safe }}');
-        
-        if(chartData.has_numeric) {
-            // Unpack Univariate Density Bar Histogram
+        const chartData = {{ chart_json| safe }};
+        if (chartData && chartData.has_numeric) {
             const ctxUni = document.getElementById('univariateChart').getContext('2d');
             new Chart(ctxUni, {
                 type: 'bar',
@@ -165,47 +286,33 @@
                     datasets: [{
                         label: `Density Frequency: ${chartData.active_univariate_name}`,
                         data: chartData.univariate_values,
-                        backgroundColor: 'rgba(16, 185, 129, 0.75)', /* Reference theme matching green */
+                        backgroundColor: 'rgba(16, 185, 129, 0.75)',
                         borderColor: '#10b981',
                         borderWidth: 2,
                         borderRadius: 6
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { font: { family: 'Inter' } } } }
-                }
+                options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // Unpack Bivariate Coordinate Scatter Plot
-            if(chartData.has_bivariate) {
+            if (chartData.has_bivariate) {
                 const ctxBi = document.getElementById('bivariateChart').getContext('2d');
-                // Format scatter data points array dictionary elements format
                 const scatterPoints = chartData.bivariate_x.map((x, idx) => ({ x: x, y: chartData.bivariate_y[idx] }));
-
                 new Chart(ctxBi, {
                     type: 'scatter',
                     data: {
                         datasets: [{
                             label: `Correlation Map: ${chartData.active_x_name} vs ${chartData.active_y_name}`,
                             data: scatterPoints,
-                            backgroundColor: '#636e7a',
-                            pointRadius: 6,
-                            pointHoverRadius: 8
+                            backgroundColor: '#64748b',
+                            pointRadius: 6
                         }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { title: { display: true, text: chartData.active_x_name } },
-                            y: { title: { display: true, text: chartData.active_y_name } }
-                        }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false }
                 });
             }
         }
     </script>
 </body>
+
 </html>
